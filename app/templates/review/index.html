@@ -153,13 +153,14 @@
 <script>
     let currentSessionId = null
     let currentCardId = null
+    let currentQuestion = null
+    let currentAnswer = null
     let isFlipped = false
     let onlyUnknown = false
     let reviewedCount = 0
     let totalCount = 0
 
     async function startSession() {
-        // Get selected deck IDs
         const checkboxes = document.querySelectorAll('.deck-checkbox:checked')
         const deckIds = Array.from(checkboxes).map(cb => parseInt(cb.value))
 
@@ -191,6 +192,7 @@
     }
 
     async function loadNextCard() {
+        // Reset flip state for new card
         isFlipped = false
         document.getElementById('cardSide').textContent = 'Question'
         document.getElementById('flipHint').classList.remove('hidden')
@@ -199,42 +201,31 @@
         const res = await fetch(`/api/sessions/${currentSessionId}/next-card?only_unknown=${onlyUnknown}`)
 
         if (res.status === 404) {
-            // No more cards — session complete
             await endSession()
             return
         }
 
         const card = await res.json()
+
+        // Store both question and answer so we can flip between them
         currentCardId = card.id
-        document.getElementById('cardContent').textContent = card.question
+        currentQuestion = card.question
+        currentAnswer = card.answer
+
+        // Always show question first
+        document.getElementById('cardContent').textContent = currentQuestion
         document.getElementById('deckLabel').textContent = card.deck_name
     }
 
     function flipCard() {
+        // Only allow flipping from question to answer, not back
         if (isFlipped) return
         isFlipped = true
 
-        // Replace question text with answer
-        fetch(`/api/sessions/${currentSessionId}/next-card?only_unknown=${onlyUnknown}`)
         document.getElementById('cardSide').textContent = 'Answer'
+        document.getElementById('cardContent').textContent = currentAnswer
         document.getElementById('flipHint').classList.add('hidden')
         document.getElementById('actionButtons').classList.remove('hidden')
-
-        // We need the answer — re-fetch the current card's answer
-        fetch(`/api/decks/0/cards`)  // placeholder — we'll get answer from card data
-        const cardContent = document.getElementById('cardContent')
-
-        // Store question, show answer from card data already loaded
-        loadCardAnswer()
-    }
-
-    async function loadCardAnswer() {
-        // Fetch the card's answer directly
-        const res = await fetch(`/api/cards/${currentCardId}/answer`)
-        if (res.ok) {
-            const data = await res.json()
-            document.getElementById('cardContent').textContent = data.answer
-        }
     }
 
     async function markCard(status) {
@@ -283,6 +274,8 @@
     function resetReview() {
         currentSessionId = null
         currentCardId = null
+        currentQuestion = null
+        currentAnswer = null
         isFlipped = false
         reviewedCount = 0
         totalCount = 0
@@ -290,7 +283,6 @@
         document.getElementById('completePanel').classList.add('hidden')
         document.getElementById('setupPanel').classList.remove('hidden')
 
-        // Uncheck all checkboxes
         document.querySelectorAll('.deck-checkbox').forEach(cb => cb.checked = false)
         document.getElementById('onlyUnknown').checked = false
     }

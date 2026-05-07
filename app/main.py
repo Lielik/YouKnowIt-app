@@ -154,9 +154,12 @@ def stats_page(
 ):
     from app.routers.stats import get_overall_stats
     stats_data = get_overall_stats(current_user=current_user, db=db)
+    # Convert to dict so Jinja2 tojson filter can serialize it
+    stats_dict = stats_data.model_dump()
     return templates.TemplateResponse("stats/index.html", {
         "request": request,
         "current_user": current_user,
         "active_page": "stats",
         "stats": stats_data,
+        "stats_json": stats_dict,
     })

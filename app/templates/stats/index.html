@@ -118,9 +118,9 @@
 {% block scripts %}
 <script>
     // Pass stats data from Jinja2 into JavaScript
-    const deckStats = {{ stats.deck_stats | tojson }}
-    const overallKnown = {{ stats.known_cards }}
-    const overallUnknown = {{ stats.unknown_cards }}
+    const deckStats = {{ stats_json.deck_stats | tojson }}
+    const overallKnown = {{ stats_json.known_cards }}
+    const overallUnknown = {{ stats_json.unknown_cards }}
 
     let chart = null
 
