@@ -22,4 +22,5 @@ class Deck(Base):
     # deleting a deck also deletes all its cards
     cards = relationship("Card", back_populates="deck",
                          cascade="all, delete-orphan")
-    session_decks = relationship("SessionDeck", back_populates="deck")
+    session_decks = relationship(
+        "SessionDeck", back_populates="deck", cascade="all, delete-orphan")

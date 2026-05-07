@@ -129,8 +129,15 @@
         if (res.ok) {
             window.location.href = '/shelf'
         } else {
-            const data = await res.json()
-            showError(data.detail || 'Login failed')
+            try {
+                const data = await res.json()
+                const msg = Array.isArray(data.detail)
+                    ? data.detail.map(e => e.msg).join(', ')
+                    : data.detail || 'Login failed'
+                showError(msg)
+            } catch {
+                showError('Login failed')
+            }
         }
     }
 
@@ -159,8 +166,15 @@
             })
             if (loginRes.ok) window.location.href = '/shelf'
         } else {
-            const data = await res.json()
-            showError(data.detail || 'Registration failed')
+            try {
+                const data = await res.json()
+                const msg = Array.isArray(data.detail)
+                    ? data.detail.map(e => e.msg).join(', ')
+                    : data.detail || 'Registration failed'
+                showError(msg)
+            } catch {
+                showError('Registration failed')
+            }
         }
     }
 </script>

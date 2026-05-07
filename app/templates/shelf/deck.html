@@ -65,19 +65,8 @@
                     <p class="text-gray-400 text-sm mt-1">{{ card.answer }}</p>
                 </div>
 
-                <!-- Status badge + actions -->
+                <!-- Actions + Status badge -->
                 <div class="flex items-center gap-3 shrink-0">
-                    <!-- Status badge -->
-                    {% if card.status and card.status.value == 'i_know_this' %}
-                    <span class="text-xs bg-indigo-900/50 text-indigo-300 border border-indigo-800 px-2.5 py-1 rounded-full">
-                        I know this ✓
-                    </span>
-                    {% else %}
-                    <span class="text-xs bg-amber-900/30 text-amber-300 border border-amber-800/50 px-2.5 py-1 rounded-full">
-                        I will know this
-                    </span>
-                    {% endif %}
-
                     <!-- Edit / Delete — visible on hover -->
                     <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button onclick="openEditCard({{ card.id }}, `{{ card.question }}`, `{{ card.answer }}`)"
@@ -89,6 +78,21 @@
                             Delete
                         </button>
                     </div>
+
+                    <!-- Status badge — clickable to toggle -->
+                    {% if card.status and card.status.value == 'i_know_this' %}
+                    <button onclick="toggleStatus({{ card.id }}, 'i_will_know_this')"
+                            class="text-xs bg-indigo-900/50 hover:bg-indigo-900/80 text-indigo-300 border border-indigo-800 px-2.5 py-1 rounded-full transition-colors cursor-pointer"
+                            title="Click to mark as I will know this">
+                        I know this ✓
+                    </button>
+                    {% else %}
+                    <button onclick="toggleStatus({{ card.id }}, 'i_know_this')"
+                            class="text-xs bg-amber-900/30 hover:bg-amber-900/60 text-amber-300 border border-amber-800/50 px-2.5 py-1 rounded-full transition-colors cursor-pointer"
+                            title="Click to mark as I know this">
+                        I will know this
+                    </button>
+                    {% endif %}
                 </div>
 
             </div>
@@ -226,6 +230,15 @@
         if (!confirm('Delete this card?')) return
 
         const res = await fetch(`/api/cards/${id}`, { method: 'DELETE' })
+        if (res.ok) window.location.reload()
+    }
+
+    async function toggleStatus(cardId, newStatus) {
+        const res = await fetch(`/api/cards/${cardId}/progress`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: newStatus })
+        })
         if (res.ok) window.location.reload()
     }
 </script>

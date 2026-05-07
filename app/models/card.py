@@ -22,4 +22,5 @@ class Card(Base):
     # deleting a card also deletes its progress records and review history
     progress = relationship(
         "CardProgress", back_populates="card", cascade="all, delete-orphan")
-    reviews = relationship("SessionReview", back_populates="card")
+    reviews = relationship(
+        "SessionReview", back_populates="card", cascade="all, delete-orphan")

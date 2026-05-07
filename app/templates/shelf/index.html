@@ -202,7 +202,8 @@
         const res = await fetch(`/api/decks/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, description: description || null })
+            // Send empty string as null to clear the description
+            body: JSON.stringify({ name, description: description.length > 0 ? description : null })
         })
 
         if (res.ok) window.location.reload()

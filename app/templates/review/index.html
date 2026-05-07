@@ -256,9 +256,21 @@
         await fetch(`/api/sessions/${sessionId}/resume`, { method: 'PATCH' })
         currentSessionId = sessionId
 
+        // Get session data to restore progress counts
+        const res = await fetch(`/api/sessions/${sessionId}`)
+        const session = await res.json()
+        totalCount = session.total_cards
+        reviewedCount = session.reviewed_cards
+
+        // Hide everything except the review panel
         document.getElementById('setupPanel').classList.add('hidden')
         document.getElementById('reviewPanel').classList.remove('hidden')
 
+        // Hide the paused sessions banner
+        const pausedBanner = document.querySelector('.bg-amber-900\\/20')
+        if (pausedBanner) pausedBanner.classList.add('hidden')
+
+        updateProgress()
         await loadNextCard()
     }
 

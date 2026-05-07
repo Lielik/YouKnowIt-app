@@ -89,7 +89,8 @@ def update_deck(
     # Only update fields that were actually provided
     if deck_data.name is not None:
         deck.name = deck_data.name
-    if deck_data.description is not None:
+    # Allow explicitly setting description to None to clear it
+    if "description" in deck_data.model_fields_set:
         deck.description = deck_data.description
 
     db.commit()
