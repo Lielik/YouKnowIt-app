@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}You Know It{% endblock %}</title>
+
+    <!-- Tailwind CSS via CDN — no build step needed -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Custom styles -->
+    <link rel="stylesheet" href="/static/css/main.css">
+
+    {% block head %}{% endblock %}
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen">
+
+    <!-- Navbar — only shown when user is logged in -->
+    {% if current_user %}
+    <nav class="bg-gray-900 border-b border-gray-800 px-6 py-4">
+        <div class="max-w-6xl mx-auto flex items-center justify-between">
+
+            <!-- Logo -->
+            <a href="/shelf" class="text-xl font-bold text-indigo-400 tracking-tight">
+                You Know It
+            </a>
+
+            <!-- Nav links -->
+            <div class="flex items-center gap-6">
+                <a href="/shelf"
+                   class="text-gray-300 hover:text-indigo-400 transition-colors {% if active_page == 'shelf' %}text-indigo-400 font-semibold{% endif %}">
+                    My Decks
+                </a>
+                <a href="/review"
+                   class="text-gray-300 hover:text-indigo-400 transition-colors {% if active_page == 'review' %}text-indigo-400 font-semibold{% endif %}">
+                    Review
+                </a>
+                <a href="/stats"
+                   class="text-gray-300 hover:text-indigo-400 transition-colors {% if active_page == 'stats' %}text-indigo-400 font-semibold{% endif %}">
+                    Stats
+                </a>
+            </div>
+
+            <!-- User info + logout -->
+            <div class="flex items-center gap-4">
+                <span class="text-gray-400 text-sm">{{ current_user.username }}</span>
+                <button onclick="logout()"
+                        class="text-sm text-gray-400 hover:text-red-400 transition-colors">
+                    Logout
+                </button>
+            </div>
+
+        </div>
+    </nav>
+    {% endif %}
+
+    <!-- Main content — each page fills this block -->
+    <main class="max-w-6xl mx-auto px-6 py-8">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Global JS -->
+    <script src="/static/js/main.js"></script>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

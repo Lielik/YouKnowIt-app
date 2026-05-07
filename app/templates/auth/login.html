@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block title %}You Know It — Login{% endblock %}
+
+{% block content %}
+<div class="min-h-[80vh] flex items-center justify-center">
+    <div class="w-full max-w-md">
+
+        <!-- Logo + tagline -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-indigo-400 mb-2">You Know It</h1>
+            <p class="text-gray-400">Learn anything. One card at a time.</p>
+        </div>
+
+        <!-- Tab switcher — Login / Register -->
+        <div class="flex bg-gray-900 rounded-xl p-1 mb-6">
+            <button id="loginTab"
+                    onclick="showTab('login')"
+                    class="flex-1 py-2 rounded-lg text-sm font-medium transition-colors bg-indigo-600 text-white">
+                Login
+            </button>
+            <button id="registerTab"
+                    onclick="showTab('register')"
+                    class="flex-1 py-2 rounded-lg text-sm font-medium transition-colors text-gray-400 hover:text-white">
+                Register
+            </button>
+        </div>
+
+        <!-- Error message box — hidden by default -->
+        <div id="errorBox"
+             class="hidden bg-red-900/50 border border-red-700 text-red-300 px-4 py-3 rounded-lg mb-4 text-sm">
+        </div>
+
+        <!-- Login form -->
+        <div id="loginForm" class="bg-gray-900 rounded-xl p-6 space-y-4">
+            <div>
+                <label class="block text-sm text-gray-400 mb-1">Email</label>
+                <input id="loginEmail"
+                       type="email"
+                       placeholder="you@example.com"
+                       class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition-colors"/>
+            </div>
+            <div>
+                <label class="block text-sm text-gray-400 mb-1">Password</label>
+                <input id="loginPassword"
+                       type="password"
+                       placeholder="••••••••"
+                       class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition-colors"/>
+            </div>
+            <button onclick="handleLogin()"
+                    class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2.5 rounded-lg transition-colors">
+                Login
+            </button>
+        </div>
+
+        <!-- Register form — hidden by default -->
+        <div id="registerForm" class="hidden bg-gray-900 rounded-xl p-6 space-y-4">
+            <div>
+                <label class="block text-sm text-gray-400 mb-1">Username</label>
+                <input id="registerUsername"
+                       type="text"
+                       placeholder="johndoe"
+                       class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition-colors"/>
+            </div>
+            <div>
+                <label class="block text-sm text-gray-400 mb-1">Email</label>
+                <input id="registerEmail"
+                       type="email"
+                       placeholder="you@example.com"
+                       class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition-colors"/>
+            </div>
+            <div>
+                <label class="block text-sm text-gray-400 mb-1">Password</label>
+                <input id="registerPassword"
+                       type="password"
+                       placeholder="••••••••"
+                       class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition-colors"/>
+            </div>
+            <button onclick="handleRegister()"
+                    class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2.5 rounded-lg transition-colors">
+                Create Account
+            </button>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Switch between login and register tabs
+    function showTab(tab) {
+        const isLogin = tab === 'login'
+
+        document.getElementById('loginForm').classList.toggle('hidden', !isLogin)
+        document.getElementById('registerForm').classList.toggle('hidden', isLogin)
+
+        document.getElementById('loginTab').className = `flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${isLogin ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:text-white'}`
+        document.getElementById('registerTab').className = `flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${!isLogin ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:text-white'}`
+
+        hideError()
+    }
+
+    function showError(message) {
+        const box = document.getElementById('errorBox')
+        box.textContent = message
+        box.classList.remove('hidden')
+    }
+
+    function hideError() {
+        document.getElementById('errorBox').classList.add('hidden')
+    }
+
+    async function handleLogin() {
+        const email = document.getElementById('loginEmail').value
+        const password = document.getElementById('loginPassword').value
+
+        if (!email || !password) {
+            showError('Please fill in all fields')
+            return
+        }
+
+        const res = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        })
+
+        if (res.ok) {
+            window.location.href = '/shelf'
+        } else {
+            const data = await res.json()
+            showError(data.detail || 'Login failed')
+        }
+    }
+
+    async function handleRegister() {
+        const username = document.getElementById('registerUsername').value
+        const email = document.getElementById('registerEmail').value
+        const password = document.getElementById('registerPassword').value
+
+        if (!username || !email || !password) {
+            showError('Please fill in all fields')
+            return
+        }
+
+        const res = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, email, password })
+        })
+
+        if (res.ok) {
+            // Auto login after successful registration
+            const loginRes = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            })
+            if (loginRes.ok) window.location.href = '/shelf'
+        } else {
+            const data = await res.json()
+            showError(data.detail || 'Registration failed')
+        }
+    }
+</script>
+{% endblock %}

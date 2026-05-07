@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+
+{% block title %}You Know It — My Decks{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Page header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-white">My Decks</h1>
+            <p class="text-gray-400 text-sm mt-1">{{ decks|length }} deck{{ 's' if decks|length != 1 }}</p>
+        </div>
+        <button onclick="openCreateDeck()"
+                class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+            + New Deck
+        </button>
+    </div>
+
+    <!-- Empty state -->
+    {% if not decks %}
+    <div class="text-center py-20">
+        <p class="text-5xl mb-4">🃏</p>
+        <h2 class="text-xl font-semibold text-gray-300 mb-2">No decks yet</h2>
+        <p class="text-gray-500 mb-6">Create your first deck to get started</p>
+        <button onclick="openCreateDeck()"
+                class="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2.5 rounded-lg font-medium transition-colors">
+            Create a Deck
+        </button>
+    </div>
+
+    {% else %}
+    <!-- Deck grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for deck in decks %}
+        <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 hover:border-indigo-800 transition-colors group">
+
+            <!-- Deck name + actions -->
+            <div class="flex items-start justify-between mb-3">
+                <h2 class="font-semibold text-white text-lg leading-tight">{{ deck.name }}</h2>
+                <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onclick="openEditDeck({{ deck.id }}, '{{ deck.name }}', '{{ deck.description or '' }}')"
+                            class="text-gray-400 hover:text-indigo-400 text-sm transition-colors">
+                        Edit
+                    </button>
+                    <button onclick="deleteDeck({{ deck.id }})"
+                            class="text-gray-400 hover:text-red-400 text-sm transition-colors">
+                        Delete
+                    </button>
+                </div>
+            </div>
+
+            <!-- Description -->
+            {% if deck.description %}
+            <p class="text-gray-400 text-sm mb-4 line-clamp-2">{{ deck.description }}</p>
+            {% endif %}
+
+            <!-- Progress bar -->
+            {% if deck.total_cards > 0 %}
+            <div class="mb-3">
+                <div class="flex justify-between text-xs text-gray-500 mb-1">
+                    <span>{{ deck.known_cards }} known</span>
+                    <span>{{ deck.total_cards }} cards</span>
+                </div>
+                <div class="h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                    <div class="h-full bg-indigo-500 rounded-full transition-all"
+                         style="width: {{ (deck.known_cards / deck.total_cards * 100)|round }}%">
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <p class="text-gray-600 text-sm mb-3">No cards yet</p>
+            {% endif %}
+
+            <!-- Actions -->
+            <div class="flex gap-2 mt-4">
+                <a href="/shelf/{{ deck.id }}"
+                   class="flex-1 text-center bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm py-2 rounded-lg transition-colors">
+                    View Cards
+                </a>
+            </div>
+
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+</div>
+
+<!-- Create deck modal -->
+<div id="createDeckModal"
+     class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+    <div class="bg-gray-900 border border-gray-800 rounded-xl p-6 w-full max-w-md mx-4">
+        <h2 class="text-lg font-semibold text-white mb-4">New Deck</h2>
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm text-gray-400 mb-1">Name</label>
+                <input id="deckName"
+                       type="text"
+                       placeholder="e.g. Spanish Vocabulary"
+                       class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition-colors"/>
+            </div>
+            <div>
+                <label class="block text-sm text-gray-400 mb-1">Description <span class="text-gray-600">(optional)</span></label>
+                <textarea id="deckDescription"
+                          placeholder="What is this deck about?"
+                          rows="2"
+                          class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition-colors resize-none"></textarea>
+            </div>
+        </div>
+        <div class="flex gap-3 mt-6">
+            <button onclick="closeCreateDeck()"
+                    class="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 py-2.5 rounded-lg transition-colors">
+                Cancel
+            </button>
+            <button onclick="createDeck()"
+                    class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white py-2.5 rounded-lg transition-colors">
+                Create
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Edit deck modal -->
+<div id="editDeckModal"
+     class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+    <div class="bg-gray-900 border border-gray-800 rounded-xl p-6 w-full max-w-md mx-4">
+        <h2 class="text-lg font-semibold text-white mb-4">Edit Deck</h2>
+        <input type="hidden" id="editDeckId"/>
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm text-gray-400 mb-1">Name</label>
+                <input id="editDeckName"
+                       type="text"
+                       class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition-colors"/>
+            </div>
+            <div>
+                <label class="block text-sm text-gray-400 mb-1">Description</label>
+                <textarea id="editDeckDescription"
+                          rows="2"
+                          class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition-colors resize-none"></textarea>
+            </div>
+        </div>
+        <div class="flex gap-3 mt-6">
+            <button onclick="closeEditDeck()"
+                    class="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 py-2.5 rounded-lg transition-colors">
+                Cancel
+            </button>
+            <button onclick="updateDeck()"
+                    class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white py-2.5 rounded-lg transition-colors">
+                Save
+            </button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function openCreateDeck() {
+        document.getElementById('createDeckModal').classList.remove('hidden')
+    }
+
+    function closeCreateDeck() {
+        document.getElementById('createDeckModal').classList.add('hidden')
+        document.getElementById('deckName').value = ''
+        document.getElementById('deckDescription').value = ''
+    }
+
+    function openEditDeck(id, name, description) {
+        document.getElementById('editDeckId').value = id
+        document.getElementById('editDeckName').value = name
+        document.getElementById('editDeckDescription').value = description
+        document.getElementById('editDeckModal').classList.remove('hidden')
+    }
+
+    function closeEditDeck() {
+        document.getElementById('editDeckModal').classList.add('hidden')
+    }
+
+    async function createDeck() {
+        const name = document.getElementById('deckName').value.trim()
+        const description = document.getElementById('deckDescription').value.trim()
+
+        if (!name) return
+
+        const res = await fetch('/api/decks', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, description: description || null })
+        })
+
+        if (res.ok) window.location.reload()
+    }
+
+    async function updateDeck() {
+        const id = document.getElementById('editDeckId').value
+        const name = document.getElementById('editDeckName').value.trim()
+        const description = document.getElementById('editDeckDescription').value.trim()
+
+        const res = await fetch(`/api/decks/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, description: description || null })
+        })
+
+        if (res.ok) window.location.reload()
+    }
+
+    async function deleteDeck(id) {
+        if (!confirm('Delete this deck and all its cards?')) return
+
+        const res = await fetch(`/api/decks/${id}`, { method: 'DELETE' })
+        if (res.ok) window.location.reload()
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,298 @@
+{% extends "base.html" %}
+
+{% block title %}You Know It — Review{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Page header -->
+    <div>
+        <h1 class="text-2xl font-bold text-white">Review Session</h1>
+        <p class="text-gray-400 text-sm mt-1">Test your knowledge</p>
+    </div>
+
+    <!-- Paused sessions banner -->
+    {% if paused_sessions %}
+    <div class="bg-amber-900/20 border border-amber-800/50 rounded-xl p-4">
+        <p class="text-amber-300 font-medium mb-3">📌 You have paused sessions</p>
+        <div class="space-y-2">
+            {% for session in paused_sessions %}
+            <div class="flex items-center justify-between">
+                <p class="text-gray-300 text-sm">
+                    Session from {{ session.started_at.strftime('%b %d, %Y') }}
+                    — {{ session.reviewed_cards }}/{{ session.total_cards }} cards reviewed
+                </p>
+                <button onclick="resumeSession({{ session.id }})"
+                        class="text-sm bg-amber-600 hover:bg-amber-500 text-white px-3 py-1.5 rounded-lg transition-colors">
+                    Resume
+                </button>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Session setup — shown before session starts -->
+    <div id="setupPanel" class="space-y-6">
+
+        <!-- Deck selection -->
+        <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+            <h2 class="font-semibold text-white mb-4">Select Decks</h2>
+
+            {% if not decks %}
+            <p class="text-gray-500 text-sm">No decks available. <a href="/shelf" class="text-indigo-400 hover:underline">Create one first</a>.</p>
+            {% else %}
+            <div class="space-y-2">
+                {% for deck in decks %}
+                <label class="flex items-center gap-3 cursor-pointer group">
+                    <input type="checkbox"
+                           value="{{ deck.id }}"
+                           class="deck-checkbox w-4 h-4 accent-indigo-500"/>
+                    <span class="text-gray-300 group-hover:text-white transition-colors">
+                        {{ deck.name }}
+                        <span class="text-gray-500 text-sm ml-1">({{ deck.total_cards }} cards)</span>
+                    </span>
+                </label>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Review options -->
+        <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+            <h2 class="font-semibold text-white mb-4">Options</h2>
+            <label class="flex items-center gap-3 cursor-pointer">
+                <input type="checkbox" id="onlyUnknown" class="w-4 h-4 accent-indigo-500"/>
+                <span class="text-gray-300">Only review cards marked <span class="text-amber-300">"I will know this"</span></span>
+            </label>
+        </div>
+
+        <!-- Start button -->
+        <button onclick="startSession()"
+                class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-3 rounded-xl transition-colors">
+            Start Review
+        </button>
+
+    </div>
+
+    <!-- Active review panel — hidden until session starts -->
+    <div id="reviewPanel" class="hidden space-y-6">
+
+        <!-- Progress bar -->
+        <div>
+            <div class="flex justify-between text-sm text-gray-400 mb-2">
+                <span id="progressText">0 reviewed</span>
+                <span id="totalText">0 total</span>
+            </div>
+            <div class="h-2 bg-gray-800 rounded-full overflow-hidden">
+                <div id="progressBar" class="h-full bg-indigo-500 rounded-full transition-all" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <!-- Flashcard -->
+        <div id="flashcard"
+             onclick="flipCard()"
+             class="cursor-pointer bg-gray-900 border border-gray-800 rounded-2xl p-8 min-h-[280px] flex flex-col items-center justify-center text-center hover:border-gray-700 transition-colors select-none">
+
+            <p class="text-xs text-gray-500 mb-4 uppercase tracking-wider" id="cardSide">Question</p>
+            <p class="text-xl text-white font-medium" id="cardContent">Loading...</p>
+            <p class="text-gray-500 text-sm mt-6" id="flipHint">Click to reveal answer</p>
+
+        </div>
+
+        <!-- Deck label -->
+        <p class="text-center text-gray-500 text-sm" id="deckLabel"></p>
+
+        <!-- Action buttons — shown after flipping -->
+        <div id="actionButtons" class="hidden grid grid-cols-2 gap-3">
+            <button onclick="markCard('i_will_know_this')"
+                    class="bg-amber-900/30 hover:bg-amber-900/50 border border-amber-800/50 text-amber-300 font-medium py-3 rounded-xl transition-colors">
+                I will know this
+            </button>
+            <button onclick="markCard('i_know_this')"
+                    class="bg-indigo-900/30 hover:bg-indigo-900/50 border border-indigo-800/50 text-indigo-300 font-medium py-3 rounded-xl transition-colors">
+                I know this ✓
+            </button>
+        </div>
+
+        <!-- Session controls -->
+        <div class="flex gap-3">
+            <button onclick="pauseSession()"
+                    class="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 py-2.5 rounded-xl transition-colors">
+                Pause Session
+            </button>
+            <button onclick="endSession()"
+                    class="flex-1 bg-gray-800 hover:bg-red-900/30 text-gray-300 hover:text-red-300 py-2.5 rounded-xl transition-colors">
+                End Session
+            </button>
+        </div>
+
+    </div>
+
+    <!-- Session complete panel — hidden until session ends -->
+    <div id="completePanel" class="hidden text-center py-12 space-y-4">
+        <p class="text-6xl">🎉</p>
+        <h2 class="text-2xl font-bold text-white">Session Complete!</h2>
+        <p class="text-gray-400" id="completeSummary"></p>
+        <div class="flex gap-3 justify-center mt-6">
+            <a href="/stats"
+               class="bg-gray-800 hover:bg-gray-700 text-gray-300 px-6 py-2.5 rounded-xl transition-colors">
+                View Stats
+            </a>
+            <button onclick="resetReview()"
+                    class="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2.5 rounded-xl transition-colors">
+                New Session
+            </button>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let currentSessionId = null
+    let currentCardId = null
+    let isFlipped = false
+    let onlyUnknown = false
+    let reviewedCount = 0
+    let totalCount = 0
+
+    async function startSession() {
+        // Get selected deck IDs
+        const checkboxes = document.querySelectorAll('.deck-checkbox:checked')
+        const deckIds = Array.from(checkboxes).map(cb => parseInt(cb.value))
+
+        if (deckIds.length === 0) {
+            alert('Please select at least one deck')
+            return
+        }
+
+        onlyUnknown = document.getElementById('onlyUnknown').checked
+
+        const res = await fetch('/api/sessions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ deck_ids: deckIds, only_unknown: onlyUnknown })
+        })
+
+        if (!res.ok) return
+        const session = await res.json()
+
+        currentSessionId = session.id
+        totalCount = session.total_cards
+        reviewedCount = session.reviewed_cards
+
+        document.getElementById('setupPanel').classList.add('hidden')
+        document.getElementById('reviewPanel').classList.remove('hidden')
+
+        updateProgress()
+        await loadNextCard()
+    }
+
+    async function loadNextCard() {
+        isFlipped = false
+        document.getElementById('cardSide').textContent = 'Question'
+        document.getElementById('flipHint').classList.remove('hidden')
+        document.getElementById('actionButtons').classList.add('hidden')
+
+        const res = await fetch(`/api/sessions/${currentSessionId}/next-card?only_unknown=${onlyUnknown}`)
+
+        if (res.status === 404) {
+            // No more cards — session complete
+            await endSession()
+            return
+        }
+
+        const card = await res.json()
+        currentCardId = card.id
+        document.getElementById('cardContent').textContent = card.question
+        document.getElementById('deckLabel').textContent = card.deck_name
+    }
+
+    function flipCard() {
+        if (isFlipped) return
+        isFlipped = true
+
+        // Replace question text with answer
+        fetch(`/api/sessions/${currentSessionId}/next-card?only_unknown=${onlyUnknown}`)
+        document.getElementById('cardSide').textContent = 'Answer'
+        document.getElementById('flipHint').classList.add('hidden')
+        document.getElementById('actionButtons').classList.remove('hidden')
+
+        // We need the answer — re-fetch the current card's answer
+        fetch(`/api/decks/0/cards`)  // placeholder — we'll get answer from card data
+        const cardContent = document.getElementById('cardContent')
+
+        // Store question, show answer from card data already loaded
+        loadCardAnswer()
+    }
+
+    async function loadCardAnswer() {
+        // Fetch the card's answer directly
+        const res = await fetch(`/api/cards/${currentCardId}/answer`)
+        if (res.ok) {
+            const data = await res.json()
+            document.getElementById('cardContent').textContent = data.answer
+        }
+    }
+
+    async function markCard(status) {
+        await fetch(`/api/sessions/${currentSessionId}/review`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ card_id: currentCardId, marked_as: status })
+        })
+
+        reviewedCount++
+        updateProgress()
+        await loadNextCard()
+    }
+
+    function updateProgress() {
+        document.getElementById('progressText').textContent = `${reviewedCount} reviewed`
+        document.getElementById('totalText').textContent = `${totalCount} total`
+        const pct = totalCount > 0 ? (reviewedCount / totalCount) * 100 : 0
+        document.getElementById('progressBar').style.width = `${pct}%`
+    }
+
+    async function pauseSession() {
+        await fetch(`/api/sessions/${currentSessionId}/pause`, { method: 'PATCH' })
+        window.location.reload()
+    }
+
+    async function resumeSession(sessionId) {
+        await fetch(`/api/sessions/${sessionId}/resume`, { method: 'PATCH' })
+        currentSessionId = sessionId
+
+        document.getElementById('setupPanel').classList.add('hidden')
+        document.getElementById('reviewPanel').classList.remove('hidden')
+
+        await loadNextCard()
+    }
+
+    async function endSession() {
+        await fetch(`/api/sessions/${currentSessionId}/end`, { method: 'PATCH' })
+
+        document.getElementById('reviewPanel').classList.add('hidden')
+        document.getElementById('completePanel').classList.remove('hidden')
+        document.getElementById('completeSummary').textContent =
+            `You reviewed ${reviewedCount} card${reviewedCount !== 1 ? 's' : ''}`
+    }
+
+    function resetReview() {
+        currentSessionId = null
+        currentCardId = null
+        isFlipped = false
+        reviewedCount = 0
+        totalCount = 0
+
+        document.getElementById('completePanel').classList.add('hidden')
+        document.getElementById('setupPanel').classList.remove('hidden')
+
+        // Uncheck all checkboxes
+        document.querySelectorAll('.deck-checkbox').forEach(cb => cb.checked = false)
+        document.getElementById('onlyUnknown').checked = false
+    }
+</script>
+{% endblock %}

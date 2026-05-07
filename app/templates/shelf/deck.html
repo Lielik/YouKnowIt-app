@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+
+{% block title %}You Know It — {{ deck.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Page header -->
+    <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <a href="/shelf" class="text-gray-400 hover:text-white transition-colors">
+                ← Back
+            </a>
+            <div>
+                <h1 class="text-2xl font-bold text-white">{{ deck.name }}</h1>
+                {% if deck.description %}
+                <p class="text-gray-400 text-sm mt-0.5">{{ deck.description }}</p>
+                {% endif %}
+            </div>
+        </div>
+        <button onclick="openCreateCard()"
+                class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+            + New Card
+        </button>
+    </div>
+
+    <!-- Stats bar -->
+    <div class="flex gap-4">
+        <div class="bg-gray-900 border border-gray-800 rounded-lg px-4 py-3 text-center">
+            <p class="text-2xl font-bold text-white">{{ deck.total_cards }}</p>
+            <p class="text-xs text-gray-400 mt-0.5">Total</p>
+        </div>
+        <div class="bg-gray-900 border border-gray-800 rounded-lg px-4 py-3 text-center">
+            <p class="text-2xl font-bold text-indigo-400">{{ deck.known_cards }}</p>
+            <p class="text-xs text-gray-400 mt-0.5">Known</p>
+        </div>
+        <div class="bg-gray-900 border border-gray-800 rounded-lg px-4 py-3 text-center">
+            <p class="text-2xl font-bold text-amber-400">{{ deck.unknown_cards }}</p>
+            <p class="text-xs text-gray-400 mt-0.5">Learning</p>
+        </div>
+    </div>
+
+    <!-- Empty state -->
+    {% if not cards %}
+    <div class="text-center py-20">
+        <p class="text-5xl mb-4">📝</p>
+        <h2 class="text-xl font-semibold text-gray-300 mb-2">No cards yet</h2>
+        <p class="text-gray-500 mb-6">Add your first card to this deck</p>
+        <button onclick="openCreateCard()"
+                class="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2.5 rounded-lg font-medium transition-colors">
+            Add a Card
+        </button>
+    </div>
+
+    {% else %}
+    <!-- Cards list -->
+    <div class="space-y-3">
+        {% for card in cards %}
+        <div class="bg-gray-900 border border-gray-800 rounded-xl p-4 hover:border-gray-700 transition-colors group">
+            <div class="flex items-start justify-between gap-4">
+
+                <!-- Question + Answer -->
+                <div class="flex-1 min-w-0">
+                    <p class="text-white font-medium">{{ card.question }}</p>
+                    <p class="text-gray-400 text-sm mt-1">{{ card.answer }}</p>
+                </div>
+
+                <!-- Status badge + actions -->
+                <div class="flex items-center gap-3 shrink-0">
+                    <!-- Status badge -->
+                    {% if card.status and card.status.value == 'i_know_this' %}
+                    <span class="text-xs bg-indigo-900/50 text-indigo-300 border border-indigo-800 px-2.5 py-1 rounded-full">
+                        I know this ✓
+                    </span>
+                    {% else %}
+                    <span class="text-xs bg-amber-900/30 text-amber-300 border border-amber-800/50 px-2.5 py-1 rounded-full">
+                        I will know this
+                    </span>
+                    {% endif %}
+
+                    <!-- Edit / Delete — visible on hover -->
+                    <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onclick="openEditCard({{ card.id }}, `{{ card.question }}`, `{{ card.answer }}`)"
+                                class="text-gray-400 hover:text-indigo-400 text-sm transition-colors">
+                            Edit
+                        </button>
+                        <button onclick="deleteCard({{ card.id }})"
+                                class="text-gray-400 hover:text-red-400 text-sm transition-colors">
+                            Delete
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+</div>
+
+<!-- Create card modal -->
+<div id="createCardModal"
+     class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+    <div class="bg-gray-900 border border-gray-800 rounded-xl p-6 w-full max-w-md mx-4">
+        <h2 class="text-lg font-semibold text-white mb-4">New Card</h2>
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm text-gray-400 mb-1">Question</label>
+                <textarea id="cardQuestion"
+                          rows="2"
+                          placeholder="What is the question?"
+                          class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition-colors resize-none"></textarea>
+            </div>
+            <div>
+                <label class="block text-sm text-gray-400 mb-1">Answer</label>
+                <textarea id="cardAnswer"
+                          rows="2"
+                          placeholder="What is the answer?"
+                          class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition-colors resize-none"></textarea>
+            </div>
+        </div>
+        <div class="flex gap-3 mt-6">
+            <button onclick="closeCreateCard()"
+                    class="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 py-2.5 rounded-lg transition-colors">
+                Cancel
+            </button>
+            <button onclick="createCard()"
+                    class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white py-2.5 rounded-lg transition-colors">
+                Add Card
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Edit card modal -->
+<div id="editCardModal"
+     class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+    <div class="bg-gray-900 border border-gray-800 rounded-xl p-6 w-full max-w-md mx-4">
+        <h2 class="text-lg font-semibold text-white mb-4">Edit Card</h2>
+        <input type="hidden" id="editCardId"/>
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm text-gray-400 mb-1">Question</label>
+                <textarea id="editCardQuestion"
+                          rows="2"
+                          class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition-colors resize-none"></textarea>
+            </div>
+            <div>
+                <label class="block text-sm text-gray-400 mb-1">Answer</label>
+                <textarea id="editCardAnswer"
+                          rows="2"
+                          class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition-colors resize-none"></textarea>
+            </div>
+        </div>
+        <div class="flex gap-3 mt-6">
+            <button onclick="closeEditCard()"
+                    class="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 py-2.5 rounded-lg transition-colors">
+                Cancel
+            </button>
+            <button onclick="updateCard()"
+                    class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white py-2.5 rounded-lg transition-colors">
+                Save
+            </button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const deckId = {{ deck.id }}
+
+    function openCreateCard() {
+        document.getElementById('createCardModal').classList.remove('hidden')
+    }
+
+    function closeCreateCard() {
+        document.getElementById('createCardModal').classList.add('hidden')
+        document.getElementById('cardQuestion').value = ''
+        document.getElementById('cardAnswer').value = ''
+    }
+
+    function openEditCard(id, question, answer) {
+        document.getElementById('editCardId').value = id
+        document.getElementById('editCardQuestion').value = question
+        document.getElementById('editCardAnswer').value = answer
+        document.getElementById('editCardModal').classList.remove('hidden')
+    }
+
+    function closeEditCard() {
+        document.getElementById('editCardModal').classList.add('hidden')
+    }
+
+    async function createCard() {
+        const question = document.getElementById('cardQuestion').value.trim()
+        const answer = document.getElementById('cardAnswer').value.trim()
+
+        if (!question || !answer) return
+
+        const res = await fetch(`/api/decks/${deckId}/cards`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ question, answer })
+        })
+
+        if (res.ok) window.location.reload()
+    }
+
+    async function updateCard() {
+        const id = document.getElementById('editCardId').value
+        const question = document.getElementById('editCardQuestion').value.trim()
+        const answer = document.getElementById('editCardAnswer').value.trim()
+
+        const res = await fetch(`/api/cards/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ question, answer })
+        })
+
+        if (res.ok) window.location.reload()
+    }
+
+    async function deleteCard(id) {
+        if (!confirm('Delete this card?')) return
+
+        const res = await fetch(`/api/cards/${id}`, { method: 'DELETE' })
+        if (res.ok) window.location.reload()
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block title %}You Know It — Stats{% endblock %}
+
+{% block head %}
+<!-- Chart.js for the pie chart -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Page header -->
+    <div>
+        <h1 class="text-2xl font-bold text-white">Statistics</h1>
+        <p class="text-gray-400 text-sm mt-1">Track your learning progress</p>
+    </div>
+
+    <!-- Overview cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-gray-900 border border-gray-800 rounded-xl p-4 text-center">
+            <p class="text-3xl font-bold text-white">{{ stats.total_sessions }}</p>
+            <p class="text-xs text-gray-400 mt-1">Total Sessions</p>
+        </div>
+        <div class="bg-gray-900 border border-gray-800 rounded-xl p-4 text-center">
+            <p class="text-3xl font-bold text-indigo-400">{{ stats.completed_sessions }}</p>
+            <p class="text-xs text-gray-400 mt-1">Completed</p>
+        </div>
+        <div class="bg-gray-900 border border-gray-800 rounded-xl p-4 text-center">
+            <p class="text-3xl font-bold text-amber-400">{{ stats.paused_sessions }}</p>
+            <p class="text-xs text-gray-400 mt-1">Paused</p>
+        </div>
+        <div class="bg-gray-900 border border-gray-800 rounded-xl p-4 text-center">
+            <p class="text-3xl font-bold text-white">{{ stats.total_cards_reviewed }}</p>
+            <p class="text-xs text-gray-400 mt-1">Cards Reviewed</p>
+        </div>
+    </div>
+
+    <!-- Knowledge ratio + pie chart -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+        <!-- Overall ratio -->
+        <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+            <h2 class="font-semibold text-white mb-4">Overall Knowledge</h2>
+
+            {% if stats.total_cards == 0 %}
+            <p class="text-gray-500 text-sm">No cards yet</p>
+            {% else %}
+            <div class="space-y-3">
+                <div class="flex justify-between text-sm">
+                    <span class="text-indigo-300">I know this</span>
+                    <span class="text-gray-400">{{ stats.known_cards }} cards ({{ stats.known_percentage }}%)</span>
+                </div>
+                <div class="h-3 bg-gray-800 rounded-full overflow-hidden">
+                    <div class="h-full bg-indigo-500 rounded-full transition-all"
+                         style="width: {{ stats.known_percentage }}%">
+                    </div>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-amber-300">I will know this</span>
+                    <span class="text-gray-400">{{ stats.unknown_cards }} cards</span>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Pie chart -->
+        <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="font-semibold text-white">By Deck</h2>
+                <!-- Deck selector -->
+                <select id="deckSelector"
+                        onchange="updateChart()"
+                        class="bg-gray-800 border border-gray-700 text-gray-300 text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-indigo-500">
+                    <option value="all">All Decks</option>
+                    {% for deck in stats.deck_stats %}
+                    <option value="{{ deck.deck_id }}">{{ deck.deck_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            {% if stats.total_cards == 0 %}
+            <p class="text-gray-500 text-sm">No cards yet</p>
+            {% else %}
+            <div class="flex items-center justify-center">
+                <canvas id="knowledgeChart" width="200" height="200"></canvas>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+
+    <!-- Per deck breakdown -->
+    {% if stats.deck_stats %}
+    <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+        <h2 class="font-semibold text-white mb-4">Deck Breakdown</h2>
+        <div class="space-y-4">
+            {% for deck in stats.deck_stats %}
+            <div>
+                <div class="flex justify-between text-sm mb-1">
+                    <span class="text-gray-300">{{ deck.deck_name }}</span>
+                    <span class="text-gray-400">{{ deck.known_cards }}/{{ deck.total_cards }} known ({{ deck.known_percentage }}%)</span>
+                </div>
+                <div class="h-2 bg-gray-800 rounded-full overflow-hidden">
+                    <div class="h-full bg-indigo-500 rounded-full"
+                         style="width: {{ deck.known_percentage }}%">
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Pass stats data from Jinja2 into JavaScript
+    const deckStats = {{ stats.deck_stats | tojson }}
+    const overallKnown = {{ stats.known_cards }}
+    const overallUnknown = {{ stats.unknown_cards }}
+
+    let chart = null
+
+    function buildChart(known, unknown) {
+        const ctx = document.getElementById('knowledgeChart')
+        if (!ctx) return
+
+        // Destroy existing chart before creating a new one
+        if (chart) chart.destroy()
+
+        chart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['I know this', 'I will know this'],
+                datasets: [{
+                    data: [known, unknown],
+                    backgroundColor: ['#6366f1', '#d97706'],
+                    borderColor: ['#4f46e5', '#b45309'],
+                    borderWidth: 2,
+                }]
+            },
+            options: {
+                responsive: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { color: '#9ca3af', padding: 16, font: { size: 12 } }
+                    }
+                }
+            }
+        })
+    }
+
+    function updateChart() {
+        const selected = document.getElementById('deckSelector').value
+
+        if (selected === 'all') {
+            buildChart(overallKnown, overallUnknown)
+        } else {
+            const deck = deckStats.find(d => d.deck_id === parseInt(selected))
+            if (deck) buildChart(deck.known_cards, deck.unknown_cards)
+        }
+    }
+
+    // Build chart on page load
+    updateChart()
+</script>
+{% endblock %}
