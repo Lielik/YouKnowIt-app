@@ -10,8 +10,6 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - postgres_data:/var/lib/postgresql/data # persists data between restarts
-    ports:
-      - "5432:5432" # expose DB port for local inspection with tools like DBeaver
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 5s

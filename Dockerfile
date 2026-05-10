@@ -1,14 +1,13 @@
-# Build stage — installs dependencies
+# Build stage - installs dependencies
 FROM python:3.12-slim AS builder
 
 WORKDIR /app
 
-# Copy requirements first — Docker caches this layer
-# so dependencies aren't reinstalled on every code change
+# Copy requirements first - so dependencies aren't reinstalled on every code change
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt --target=/app/packages
 
-# Final stage — lean production image
+# Final stage — lean image
 FROM python:3.12-slim
 
 WORKDIR /app
