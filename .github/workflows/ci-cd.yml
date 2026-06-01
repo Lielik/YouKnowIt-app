@@ -253,50 +253,35 @@ jobs:
                   "type": "header",
                   "text": {
                     "type": "plain_text",
-                    "text": "${{ steps.status.outputs.result == 'success' && '✅ Pipeline Succeeded' || steps.status.outputs.result == 'cancelled' && '⚠️ Pipeline Cancelled' || '❌ Pipeline Failed' }}"
+                    "text": "${{ steps.status.outputs.result == 'success' && '✅ YouKnowIt Pipeline Succeeded' || steps.status.outputs.result == 'cancelled' && '⚠️ YouKnowIt Pipeline Cancelled' || '❌ YouKnowIt Pipeline Failed' }}"
                   }
                 },
                 {
                   "type": "section",
-                  "fields": [
-                    {
-                      "type": "mrkdwn",
-                      "text": "*🌿 Branch*\n${{ github.ref_name }}"
-                    },
-                    {
-                      "type": "mrkdwn",
-                      "text": "*👤 Triggered by*\n${{ github.actor }}"
-                    },
-                    {
-                      "type": "mrkdwn",
-                      "text": "*💬 Commit*\n${{ github.event.head_commit.message }}"
-                    },
-                    {
-                      "type": "mrkdwn",
-                      "text": "*🏷️ Version*\n${{ needs.release.outputs.version || 'N/A' }}"
-                    }
-                  ]
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "${{ needs.release.outputs.version || 'N/A' }}  |  ${{ github.ref_name }}  |  ${{ github.actor }}"
+                  }
                 },
                 {
                   "type": "section",
-                  "fields": [
-                    {
-                      "type": "mrkdwn",
-                      "text": "*🧪 Unit Tests*\n${{ needs.test-unit.result }}"
-                    },
-                    {
-                      "type": "mrkdwn",
-                      "text": "*🐳 Build*\n${{ needs.build-image.result }}"
-                    },
-                    {
-                      "type": "mrkdwn",
-                      "text": "*🔬 Integration Tests*\n${{ needs.test-integration.result }}"
-                    },
-                    {
-                      "type": "mrkdwn",
-                      "text": "*🚀 Release*\n${{ needs.release.result }}"
-                    }
-                  ]
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Commit*\n${{ github.event.head_commit.message }}"
+                  }
+                },
+                {
+                  "type": "divider"
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "${{ needs.test-unit.result == 'success' && '✅' || needs.test-unit.result == 'skipped' && '⏭️' || '❌' }} Unit Tests\n${{ needs.build-image.result == 'success' && '✅' || needs.build-image.result == 'skipped' && '⏭️' || '❌' }} Build\n${{ needs.test-integration.result == 'success' && '✅' || needs.test-integration.result == 'skipped' && '⏭️' || '❌' }} Integration Tests\n${{ needs.release.result == 'success' && '✅' || needs.release.result == 'skipped' && '⏭️' || needs.release.result == 'cancelled' && '⚠️' || '❌' }} Release"
+                  }
+                },
+                {
+                  "type": "divider"
                 },
                 {
                   "type": "actions",
