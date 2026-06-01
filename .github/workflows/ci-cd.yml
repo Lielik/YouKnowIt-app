@@ -137,25 +137,12 @@ jobs:
           gunzip -c youknowit-app.tar.gz | docker load
           echo "Docker image loaded successfully"
 
-      - name: Configure AWS credentials via OIDC
-        uses: aws-actions/configure-aws-credentials@v6.1.3
-
-        with:
-          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-
       - name: Calculate next version
         id: version
         run: |
           if [[ "${{ github.ref }}" == refs/heads/main ]]; then
-            TAGS=$(aws ecr list-images \
-              --repository-name $(basename ${{ env.ECR_REPOSITORY }}) \
-              --region ${{ env.AWS_REGION }} \
-              --query 'imageIds[*].imageTag' \
-              --output text 2>/dev/null || echo "")
-
-            LATEST=$(echo "$TAGS" \
-              | tr '\t' '\n' \
+            # Get the latest semver tag from git
+            LATEST=$(git tag --list 'v*.*.*' \
               | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
               | sort -V \
               | tail -1)
@@ -171,6 +158,7 @@ jobs:
 
             echo "tag=${NEXT}" >> $GITHUB_OUTPUT
             echo "is_main=true" >> $GITHUB_OUTPUT
+            echo "Next version: ${NEXT}"
 
           elif [[ "${{ github.ref }}" == refs/heads/feature/* ]]; then
             BRANCH=$(echo "${{ github.ref_name }}" \
@@ -181,6 +169,7 @@ jobs:
 
             echo "tag=${TAG}" >> $GITHUB_OUTPUT
             echo "is_main=false" >> $GITHUB_OUTPUT
+            echo "Feature tag: ${TAG}"
           fi
 
       - name: Tag version in GitHub repository
@@ -196,6 +185,13 @@ jobs:
             git push origin ${{ steps.version.outputs.tag }}
             echo "Tagged ${{ steps.version.outputs.tag }} successfully"
           fi
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v6.1.3
+
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
