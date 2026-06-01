@@ -215,10 +215,14 @@ jobs:
       - name: Determine pipeline status
         id: status
         run: |
-          # Check if any job failed
-          if [[ "${{ contains(needs.*.result, 'failure') }}" == "true" ]]; then
+          UNIT="${{ needs.test-unit.result }}"
+          BUILD="${{ needs.build-image.result }}"
+          INTEGRATION="${{ needs.test-integration.result }}"
+          RELEASE="${{ needs.release.result }}"
+
+          if [[ "$UNIT" == "failure" || "$BUILD" == "failure" || "$INTEGRATION" == "failure" || "$RELEASE" == "failure" ]]; then
             echo "result=failure" >> $GITHUB_OUTPUT
-          elif [[ "${{ contains(needs.*.result, 'cancelled') }}" == "true" ]]; then
+          elif [[ "$UNIT" == "cancelled" || "$BUILD" == "cancelled" || "$INTEGRATION" == "cancelled" || "$RELEASE" == "cancelled" ]]; then
             echo "result=cancelled" >> $GITHUB_OUTPUT
           else
             echo "result=success" >> $GITHUB_OUTPUT
