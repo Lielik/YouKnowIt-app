@@ -13,10 +13,6 @@ from app.core.dependencies import get_current_user, get_optional_user
 from app.database import Base, engine, get_db
 from app.models.user import User
 from app.routers import auth, decks, cards, sessions, stats
-from app.schemas.stats import OverallStats
-
-# Create all database tables on startup if they don't exist yet
-Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -40,6 +36,12 @@ app.include_router(stats.router)
 
 # Expose /metrics endpoint for Prometheus to scrape
 Instrumentator().instrument(app).expose(app)
+
+
+@app.on_event("startup")
+def startup():
+    # Create all tables on startup — in production Alembic handles this
+    Base.metadata.create_all(bind=engine)
 
 
 # --- Health check ---
@@ -154,7 +156,6 @@ def stats_page(
 ):
     from app.routers.stats import get_overall_stats
     stats_data = get_overall_stats(current_user=current_user, db=db)
-    # Convert to dict so Jinja2 tojson filter can serialize it
     stats_dict = stats_data.model_dump()
     return templates.TemplateResponse("stats/index.html", {
         "request": request,

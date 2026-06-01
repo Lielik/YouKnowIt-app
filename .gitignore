@@ -2,6 +2,7 @@
 # Secrets 
 # ==========================
 .env
+.env.test
 *.pem
 *.key
 *.p12
